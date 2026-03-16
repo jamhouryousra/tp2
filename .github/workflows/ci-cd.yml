@@ -8,8 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend
-  FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend
+  IMAGE_BASE: ghcr.io/jamhouryousra/tp2
 
 jobs:
   # ---- Job 1: Test ----
@@ -55,14 +54,14 @@ jobs:
         with:
           context: ./backend
           push: true
-          tags: ${{ env.BACKEND_IMAGE }}:${{ github.sha }},${{ env.BACKEND_IMAGE }}:latest
+          tags: ${{ env.IMAGE_BASE }}/backend:${{ github.sha }},${{ env.IMAGE_BASE }}/backend:latest
 
       - name: Build & push frontend image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           push: true
-          tags: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }},${{ env.FRONTEND_IMAGE }}:latest
+          tags: ${{ env.IMAGE_BASE }}/frontend:${{ github.sha }},${{ env.IMAGE_BASE }}/frontend:latest
 
   # ---- Job 3: Deploy to VPS ----
   deploy:
@@ -81,8 +80,8 @@ jobs:
             echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             # Pull latest images
-            docker pull ${{ env.BACKEND_IMAGE }}:latest
-            docker pull ${{ env.FRONTEND_IMAGE }}:latest
+            docker pull ${{ env.IMAGE_BASE }}/backend:latest
+            docker pull ${{ env.IMAGE_BASE }}/frontend:latest
 
             # Stop old containers
             docker stop backend frontend db 2>/dev/null || true
@@ -112,12 +111,12 @@ jobs:
               -e DB_USER=postgres \
               -e DB_PASSWORD=postgres \
               -p 3000:3000 \
-              ${{ env.BACKEND_IMAGE }}:latest
+              ${{ env.IMAGE_BASE }}/backend:latest
 
             # Start frontend
             docker run -d --name frontend \
               --network app-network \
               -p 80:80 \
-              ${{ env.FRONTEND_IMAGE }}:latest
+              ${{ env.IMAGE_BASE }}/frontend:latest
 
             echo "Deployment complete!"
